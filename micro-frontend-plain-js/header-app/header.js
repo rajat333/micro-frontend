@@ -1,44 +1,59 @@
-import { EventBus } from "http://localhost:3005/event-bus.js";
 
-export function mountHeader(containerEl) {
+export function mountHeader(container) {
+    const root = document.createElement("div");
+    container.appendChild(root);
+    console.log("header mount");
+    const shadow = root.attachShadow({ mode: "open" });
 
-    const shadow = containerEl.attachShadow({ mode: "open" });
-
-    // el.innerHTML = `
-    //   <header style="padding:12px;background:#1f2937;color:white">
-    //     <h2>🛒 MyStore</h2>
-    //     <button id="loginBtn">Login</button>
-    //   </header>
-    // `;
-    // HTML + CSS inside shadow root
     shadow.innerHTML = `
-                <style>
-                    header {
-                    padding: 12px;
-                    background: #1f2937;
-                    color: white;
-                    }
-                    button {
-                    background: #2563eb;
-                    color: white;
-                    border: none;
-                    padding: 6px 12px;
-                    cursor: pointer;
-                    }
-                </style>
+      <style>
+        nav {
+          background: #222;
+          padding: 10px;
+        }
+        a {
+          color: white;
+          margin-right: 16px;
+          cursor: pointer;
+          text-decoration: none;
+        }
+      </style>
+  
+      <nav>
+        <a href="/product" data-link>Product</a>
+        <a href="/cart" data-link>Cart</a>
+      </nav>
+    `;
 
-                <header>
-                    <h2>🛒 MyStore</h2>
-                    <button id="loginBtn">Login</button>
-                </header>
-            `;
+    shadow.addEventListener("click", e => {
+        const link = e.target.closest("[data-link]");
+        if (!link) return;
 
-        shadow.getElementById("loginBtn").onclick = () => {
-        EventBus.emit("user:login", { userId: 101, name: "Rajat" });
-        //   window.dispatchEvent(
-        //     new CustomEvent("user:login", {
-        //       detail: { userId: 101, name: "Rajat" }
-        //     })
-        //   );
-    };
+        e.preventDefault();
+        const href = link.getAttribute("href");
+
+        window.dispatchEvent(
+            new CustomEvent("navigate", {
+                detail: href,
+                bubbles: true,
+                composed: true
+            })
+        );
+    });
+    // Save reference to shadow inside root
+    root._shadow = shadow;
+
+    return root; // return root so container.js can call updateActiveRoute
+}
+
+/// Update active link dynamically
+export function updateActiveRoute(path, root) {
+    if (!root?._shadow) return;
+    root._shadow.querySelectorAll("[data-link]").forEach(a => {
+        if (a.getAttribute("href") === path) {
+            a.classList.add("active");
+        } else {
+            a.classList.remove("active");
+        }
+    });
 }

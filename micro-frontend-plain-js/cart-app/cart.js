@@ -1,40 +1,52 @@
 import { EventBus } from "http://localhost:3005/event-bus.js";
+import { Store } from "http://localhost:3005/store.js";
 
-let cart = [];
-let userName = "";
-export function mountCart(containerEl) {
+let rootElement = null;
+// let cart = [];
 
-  const shadow = containerEl.attachShadow({ mode: "open" });
+export function mountCart(container) {
+  console.log("🚀 mountCart called", rootElement);
+
+  // if (rootElement) return; // prevent double mount
+
+  rootElement = document.createElement("div");
+  const shadow = rootElement.attachShadow({ mode: "open" });
 
   function render() {
-    console.log("cart------", cart);
+    console.log("in render---", Store.cart);
     shadow.innerHTML = `
       <style>
-        h3 { color: #333; }
+        h3 { color: blue; }
         div { margin-bottom: 4px; }
       </style>
+
       <h3>Cart</h3>
-      ${userName} <br/><br/>
-      ${cart.map(i => `<div>${i.name}</div>`).join("") || "<i>Empty</i>"}
+      ${
+        Store.cart.length
+          ? Store.cart.map(i => `<div>${i.name} - ₹${i.price}</div>`).join("")
+          : "<p>Your cart is empty</p>"
+      }
     `;
   }
 
   render();
+  container.appendChild(rootElement);
 
-//   window.addEventListener("cart:add", e => {
-//     console.log("cart event listen", e);
-//     cart.push(e.detail);
-//     render(el);
-//   });
-    EventBus.on("cart:add", product => {
-      console.log("cart push", product);
-        cart.push(product?.detail);
-        render();
-    });
+  // Listen for cart:add
+  rootElement._onCartAdd = product => {
+    console.log("Cart received product:", product);
+    Store.cart.push(product);
+    render();
+  };
+  EventBus.on("cart:add", rootElement._onCartAdd);
+}
 
-    EventBus.on("user:login", user => {
-        console.log("User logged in:", user.name);
-        userName = user.name;
-        render();
-    });
+export function unmountCart() {
+  console.log("Unmount Cart");
+  if (rootElement?._onCartAdd) {
+    EventBus.off("cart:add", rootElement._onCartAdd);
+  }
+  rootElement?.remove();
+  rootElement = null;
+  // cart = [];
 }
